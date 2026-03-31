@@ -1,3 +1,9 @@
+"use client";
+
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { signOut } from 'firebase/auth';
+import { useUser, useAuth } from '@/firebase';
 import { NoticeList } from '@/components/NoticeList';
 import { SettingsDialog } from '@/components/SettingsDialog';
 import { AppSidebar } from '@/components/AppSidebar';
@@ -8,6 +14,33 @@ import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 export default function Home() {
+  const { user, isUserLoading } = useUser();
+  const auth = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!isUserLoading && !user) {
+      router.replace('/login');
+    }
+  }, [user, isUserLoading, router]);
+
+  const handleSignOut = async () => {
+    try {
+      await signOut(auth);
+      router.replace('/login');
+    } catch (error) {
+      console.error('Sign out failed', error);
+    }
+  };
+
+  if (isUserLoading || !user) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <p className="text-white text-lg">Loading...</p>
+      </div>
+    );
+  }
+
   return (
     <SidebarProvider>
       <div className="flex min-h-screen w-full bg-[#111c2a] p-4 md:p-6 lg:p-8">
@@ -31,6 +64,9 @@ export default function Home() {
                   <Bell className="w-5 h-5 text-muted-foreground" />
                 </Button>
                 <SettingsDialog />
+                <Button variant="secondary" size="sm" onClick={handleSignOut}>
+                  Sign Out
+                </Button>
                 <div className="flex items-center gap-3 pl-4 border-l border-white/20">
                   <div className="text-right hidden md:block">
                     <p className="text-sm font-bold">Admin User</p>
