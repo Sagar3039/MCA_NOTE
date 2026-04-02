@@ -4,12 +4,19 @@ import React, { useState, useMemo } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Download, Sparkles, Loader2, MoreHorizontal, User2 } from 'lucide-react';
+import { Download, Sparkles, Loader2, User2 } from 'lucide-react';
 import { Notice } from '@/lib/types';
 import { summarizeNotice } from '@/ai/flows/summarize-notice-flow';
 import { toast } from '@/hooks/use-toast';
 import { Progress } from '@/components/ui/progress';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 interface NoticeCardProps {
   notice: Notice;
@@ -30,6 +37,8 @@ export function NoticeCard({ notice, isLatest }: NoticeCardProps) {
   const [loading, setLoading] = useState(false);
   const [downloadLoading, setDownloadLoading] = useState(false);
   const [showSummary, setShowSummary] = useState(false);
+  const [errorDialogOpen, setErrorDialogOpen] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
 
   // Random visual elements to match design
   const gradient = useMemo(() => GRADIENTS[Math.floor(Math.random() * GRADIENTS.length)], []);
@@ -38,7 +47,19 @@ export function NoticeCard({ notice, isLatest }: NoticeCardProps) {
 
   const fetchDetails = async () => {
     const contentRes = await fetch(`/api/notices/content?url=${encodeURIComponent(notice.link)}`);
-    if (!contentRes.ok) throw new Error('Failed to retrieve document content');
+    if (contentRes.status !== 200) {
+      let issue = contentRes.statusText || 'Unknown error';
+      try {
+        const _text = await contentRes.text();
+        try {
+          const errorData = JSON.parse(_text);
+          issue = errorData.error || errorData.message || _text;
+        } catch {
+          issue = _text || issue;
+        }
+      } catch (e) {}
+      throw new Error(`Status Code ${contentRes.status}: ${issue}`);
+    }
     return await contentRes.json();
   };
 
@@ -63,11 +84,17 @@ export function NoticeCard({ notice, isLatest }: NoticeCardProps) {
       setSummary(result.summary);
       setShowSummary(true);
     } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "Summarization Error",
-        description: error?.message || "Check your API key settings.",
-      });
+      const errorMessage = error?.message || "An error occurred.";
+      if (errorMessage.toLowerCase().includes('api') || errorMessage.toLowerCase().includes('key')) {
+        toast({
+          variant: "destructive",
+          title: "API Key Issue",
+          description: "Please update your Gemini API key in settings. The key may be invalid, expired, or missing.",
+        });
+      } else {
+        setErrorMessage(errorMessage);
+        setErrorDialogOpen(true);
+      }
     } finally {
       setLoading(false);
     }
@@ -108,9 +135,6 @@ export function NoticeCard({ notice, isLatest }: NoticeCardProps) {
           </div>
           <div className="flex items-center gap-2">
             <div className={`w-2 h-2 rounded-full ${isLatest ? 'bg-emerald-400' : 'bg-slate-300'}`} />
-            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full hover:bg-black/5">
-              <MoreHorizontal className="w-4 h-4" />
-            </Button>
           </div>
         </div>
 
@@ -178,6 +202,16 @@ export function NoticeCard({ notice, isLatest }: NoticeCardProps) {
           </Button>
         </div>
       </CardContent>
+      <Dialog open={errorDialogOpen} onOpenChange={setErrorDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Error</DialogTitle>
+            <DialogDescription>
+              {errorMessage}
+            </DialogDescription>
+          </DialogHeader>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }

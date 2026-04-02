@@ -1,82 +1,24 @@
+
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    /**
-     * Midnapore CampusConnect Security Rules
-     *
-     * Core Philosophy:
-     * This ruleset enforces a strict identity-based access model where data is categorized into 
-     * shared administrative content and private user profiles. Authentication via Firebase Auth 
-     * is a mandatory prerequisite for accessing any data within the application.
-     *
-     * Data Structure:
-     * - /notices/{noticeId}: Global notices aggregated from the college website.
-     * - /users/{userId}: Private user profiles secured by path-based ownership.
-     *
-     * Key Security Decisions:
-     * 1. Mandatory Authentication: The `isSignedIn()` helper is used across all read operations 
-     *    to ensure no data is leaked to unauthenticated actors.
-     * 2. Path-Based Ownership: User data is nested directly under the UID in the `/users` 
-     *    collection, allowing for high-performance authorization without `get()` calls.
-     * 3. Read-Only Administrative Data: The `notices` collection is configured as read-only 
-     *    for all client-side users. Writes are expected to be performed via Administrative 
-     *    SDKs which bypass these rules.
-     * 4. Relational Integrity: On user profile creation, the internal `id` field must 
-     *    match the document ID to prevent data spoofing.
-     */
-
-    // --- Helper Functions ---
-
-    /** @description Checks if the request is made by an authenticated user. */
     function isSignedIn() {
       return request.auth != null;
     }
 
-    /** @description Checks if the authenticated user's UID matches the provided userId. */
-    function isOwner(userId) {
-      return isSignedIn() && request.auth.uid == userId;
+    function isAdmin() {
+      return request.auth != null &&
+             request.auth.token.email == "sagarkarmakar3.10.2004@gmail.com";
     }
 
-    /** @description Checks if the user is the owner and the document exists for modification. */
-    function isExistingOwner(userId) {
-      return isOwner(userId) && resource != null;
-    }
-
-    // --- Collection Rules ---
-
-    /**
-     * @description Rules for the notices collection containing scraped college announcements.
-     * @path /notices/{noticeId}
-     * @allow get, list: if a user is signed in.
-     * @deny create, update, delete: if any user attempts a write (backend-only operation).
-     * @principle Restricts writes to administrative processes while allowing global read access to authenticated users.
-     */
-    match /notices/{noticeId} {
-      allow get, list: if isSignedIn();
-      allow create: if false;
-      allow update: if false;
-      allow delete: if false;
-    }
-
-    /**
-     * @description Rules for user profile documents.
-     * @path /users/{userId}
-     * @allow get, list: if the user's UID matches the document path.
-     * @allow create: if the user's UID matches the path and the internal data ID is consistent.
-     * @allow update, delete: if the user owns the existing document and maintains ID integrity.
-     * @deny create, update, delete: if the user attempts to modify another user's profile.
-     * @principle Enforces strict path-based ownership and relational integrity for user-specific data.
-     */
-    match /users/{userId} {
-      // Read access: Users can only see their own profile. 
-      // list is allowed for the owner to facilitate profile fetching queries.
-      allow get, list: if isOwner(userId);
-
-      // Write access: Users can create and manage their own profile.
-      allow create: if isOwner(userId) && request.resource.data.id == userId;
-      allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
-      allow delete: if isExistingOwner(userId);
+    // ✅ FIX: explicitly allow collection access
+    match /students/{uid} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && request.auth.uid == uid;
+      allow update: if isSignedIn() && request.auth.uid == uid;
+      allow delete: if isAdmin();
     }
   }
 }
+

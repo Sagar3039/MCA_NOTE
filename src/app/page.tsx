@@ -1,22 +1,33 @@
 "use client";
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { signOut } from 'firebase/auth';
+import { signOut, updateProfile } from 'firebase/auth';
 import { useUser, useAuth } from '@/firebase';
 import { NoticeList } from '@/components/NoticeList';
 import { SettingsDialog } from '@/components/SettingsDialog';
 import { AppSidebar } from '@/components/AppSidebar';
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
-import { Search, Bell, Settings, User, Plus, Grid, List, Filter } from 'lucide-react';
+import { Search, Settings, User, Plus } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
 export default function Home() {
   const { user, isUserLoading } = useUser();
   const auth = useAuth();
   const router = useRouter();
+
+  const [localDisplayName, setLocalDisplayName] = useState(user?.displayName || '');
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [newName, setNewName] = useState('');
+
+  useEffect(() => {
+    if (user) {
+      setLocalDisplayName(user.displayName || '');
+    }
+  }, [user]);
 
   useEffect(() => {
     if (!isUserLoading && !user) {
@@ -30,6 +41,17 @@ export default function Home() {
       router.replace('/login');
     } catch (error) {
       console.error('Sign out failed', error);
+    }
+  };
+
+  const handleSaveName = async () => {
+    if (!newName.trim() || !user) return;
+    try {
+      await updateProfile(user, { displayName: newName.trim() });
+      setLocalDisplayName(newName.trim());
+      setIsEditingName(false);
+    } catch (error) {
+      console.error('Failed to update name', error);
     }
   };
 
@@ -60,23 +82,55 @@ export default function Home() {
               </div>
               
               <div className="flex items-center gap-4">
-                <Button variant="ghost" size="icon" className="rounded-full bg-white/50">
-                  <Bell className="w-5 h-5 text-muted-foreground" />
-                </Button>
                 <SettingsDialog />
                 <Button variant="secondary" size="sm" onClick={handleSignOut}>
                   Sign Out
                 </Button>
-                <div className="flex items-center gap-3 pl-4 border-l border-white/20">
-                  <div className="text-right hidden md:block">
-                    <p className="text-sm font-bold">Admin User</p>
-                    <p className="text-[10px] text-muted-foreground">College Portal</p>
-                  </div>
-                  <Avatar className="w-10 h-10 border-2 border-primary/20">
-                    <AvatarImage src="https://picsum.photos/seed/user/100/100" />
-                    <AvatarFallback>MC</AvatarFallback>
-                  </Avatar>
-                </div>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <div className="flex items-center gap-3 pl-4 border-l border-white/20 cursor-pointer hover:bg-black/5 p-2 rounded-xl transition-colors">
+                      <div className="text-right hidden md:block">
+                        <p className="text-sm font-bold">{localDisplayName || user.email?.split('@')[0] || 'User'}</p>
+                        <p className="text-[10px] text-muted-foreground">College Portal</p>
+                      </div>
+                      <Avatar className="w-10 h-10 border-2 border-primary/20">
+                        <AvatarImage src={user.photoURL || "https://picsum.photos/seed/user/100/100"} />
+                        <AvatarFallback>{localDisplayName?.charAt(0)?.toUpperCase() || user.email?.charAt(0)?.toUpperCase() || 'U'}</AvatarFallback>
+                      </Avatar>
+                    </div>
+                  </PopoverTrigger>
+                  <PopoverContent align="end" className="w-64 p-4 space-y-3 bg-white border-slate-200">
+                    <div className="flex flex-col space-y-1">
+                      {isEditingName ? (
+                        <div className="space-y-2">
+                          <Input value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="Enter new name" />
+                          <div className="flex gap-2">
+                            <Button size="sm" onClick={handleSaveName}>Save</Button>
+                            <Button size="sm" variant="outline" onClick={() => setIsEditingName(false)}>Cancel</Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <>
+                          <p className="text-sm font-semibold text-slate-900">{localDisplayName || 'Unnamed User'}</p>
+                          <Button size="sm" variant="outline" onClick={() => { setIsEditingName(true); setNewName(localDisplayName); }}>Edit Name</Button>
+                        </>
+                      )}
+                      <p className="text-xs text-slate-500">{user.email || 'No email'}</p>
+                    </div>
+                    <div className="text-xs text-slate-500 border-t border-slate-100 pt-3">
+                      <div className="grid grid-cols-2 gap-y-1">
+                        <span className="font-medium text-slate-600">UID:</span>
+                        <span className="truncate" title={user.uid}>{user.uid}</span>
+                        {user.metadata?.creationTime && (
+                          <>
+                            <span className="font-medium text-slate-600">Joined:</span>
+                            <span>{new Date(user.metadata.creationTime).toLocaleDateString()}</span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </PopoverContent>
+                </Popover>
               </div>
             </header>
 
@@ -91,24 +145,7 @@ export default function Home() {
                       Notice Board
                     </h1>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <div className="flex bg-white/50 p-1 rounded-lg border border-white/50">
-                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0 bg-white shadow-sm">
-                        <Grid className="w-4 h-4 text-primary" />
-                      </Button>
-                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                        <List className="w-4 h-4 text-muted-foreground" />
-                      </Button>
-                    </div>
-                    <Button variant="outline" size="sm" className="bg-white/50 h-10 gap-2 border-white/50 rounded-xl">
-                      <Filter className="w-4 h-4" />
-                      Filter
-                    </Button>
-                    <Button className="bg-[#1a2b3c] hover:bg-[#2c3e50] text-white rounded-xl h-10 gap-2 shadow-lg px-6">
-                      <Plus className="w-4 h-4" />
-                      Post Update
-                    </Button>
-                  </div>
+                  
                 </div>
 
                 <NoticeList />

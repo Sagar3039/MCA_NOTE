@@ -1,5 +1,7 @@
 "use client";
 
+import { useState, useEffect } from "react";
+import { usePathname } from "next/navigation";
 import { 
   LayoutDashboard, 
   Users, 
@@ -19,18 +21,24 @@ import {
   SidebarGroup,
   SidebarGroupContent,
 } from "@/components/ui/sidebar";
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import { useUser } from "@/firebase";
 import Link from "next/link";
 
 const items = [
-  { title: "Dashboard", icon: LayoutDashboard, url: "#" },
-  { title: "Students", icon: Users, url: "#" },
-  { title: "Notices", icon: BookOpen, url: "#", active: true },
-  { title: "Discussions", icon: MessageSquare, url: "#" },
-  { title: "Groups", icon: Users2, url: "#" },
-  { title: "Library", icon: Library, url: "#" },
+  { title: "Dashboard", icon: LayoutDashboard, url: "/dashboard" },
+  { title: "Students", icon: Users, url: "/students" },
+  { title: "Notices", icon: BookOpen, url: "/notices" },
+  { title: "Discussions", icon: MessageSquare, url: "/discussions" },
+  { title: "Groups", icon: Users2, url: "/groups" },
+  { title: "Library", icon: Library, url: "/library" },
 ];
 
 export function AppSidebar() {
+  const pathname = usePathname();
+
+  const isActive = (url: string) => pathname === url;
+
   return (
     <Sidebar className="border-none bg-transparent pr-4 w-72">
       <SidebarHeader className="bg-transparent py-8 px-6">
@@ -50,16 +58,16 @@ export function AppSidebar() {
             <SidebarMenu className="gap-2">
               {items.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild isActive={item.active}>
+                  <SidebarMenuButton asChild isActive={isActive(item.url)}>
                     <Link 
                       href={item.url} 
                       className={`flex items-center gap-4 py-6 px-4 rounded-2xl transition-all duration-300 ${
-                        item.active 
+                        isActive(item.url)
                           ? "bg-white/10 text-white shadow-lg" 
                           : "text-white/50 hover:text-white hover:bg-white/5"
                       }`}
                     >
-                      <item.icon className={`w-5 h-5 ${item.active ? "text-primary" : ""}`} />
+                      <item.icon className={`w-5 h-5 ${isActive(item.url) ? "text-primary" : ""}`} />
                       <span className="font-semibold">{item.title}</span>
                     </Link>
                   </SidebarMenuButton>

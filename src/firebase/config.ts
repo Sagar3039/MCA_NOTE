@@ -1,8 +1,18 @@
-export const firebaseConfig = {
-  "projectId": "studio-815054631-7554d",
-  "appId": "1:589485193971:web:0dc8467ccc9bd92fec1586",
-  "apiKey": "AIzaSyBtWPX6ExFAOLdQg9i4OJOFF4MBYB8nT7I",
-  "authDomain": "studio-815054631-7554d.firebaseapp.com",
-  "measurementId": "",
-  "messagingSenderId": "589485193971"
+
+import { initializeApp } from "firebase/app";
+import { getFirestore } from "firebase/firestore";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyAW72by3_bkdIyg40kIz10Kj-BXaxpiQQ0",
+  authDomain: "studio-815054631-d75c7.firebaseapp.com",
+  projectId: "studio-815054631-d75c7",
+  storageBucket: "studio-815054631-d75c7.firebasestorage.app",
+  messagingSenderId: "327906201961",
+  appId: "1:327906201961:web:f318d8bc30ac662d832df8"
 };
+
+// ✅ Initialize Firebase
+const app = initializeApp(firebaseConfig);
+
+// ✅ Export Firestore DB (THIS WAS MISSING)
+export const db = getFirestore(app);
