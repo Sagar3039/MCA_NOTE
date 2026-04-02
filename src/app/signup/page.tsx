@@ -9,6 +9,7 @@ import { db } from '@/firebase/config';
 import { collection, setDoc, doc, serverTimestamp } from 'firebase/firestore';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { BRANCHES } from '@/lib/branches';
 
 export default function SignupPage() {
   const router = useRouter();
@@ -196,12 +197,15 @@ export default function SignupPage() {
               className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-md text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="">Select Branch</option>
-              <option value="CSE">Computer Science Engineering</option>
-              <option value="ECE">Electronics & Communication</option>
-              <option value="ME">Mechanical Engineering</option>
-              <option value="CE">Civil Engineering</option>
-              <option value="EE">Electrical Engineering</option>
-              <option value="IT">Information Technology</option>
+              {Object.entries(BRANCHES).map(([key, category]) => (
+                <optgroup key={key} label={category.label}>
+                  {category.options.map((option) => (
+                    <option key={option} value={option}>
+                      {option}
+                    </option>
+                  ))}
+                </optgroup>
+              ))}
             </select>
           </div>
 

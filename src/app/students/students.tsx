@@ -12,6 +12,8 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Search } from "lucide-react";
+import { useUser } from "@/firebase";
+import { useRouter } from "next/navigation";
 
 interface Student {
   id?: string;
@@ -23,6 +25,23 @@ interface Student {
 }
 
 export default function StudentsPage() {
+
+   const { user, isUserLoading } = useUser();
+    const router = useRouter();
+  
+    useEffect(() => {
+      if (!isUserLoading && !user) {
+        router.replace('/login');
+      }
+    }, [user, isUserLoading, router]);
+  
+    if (isUserLoading) {
+      return (
+        <div className="flex items-center justify-center min-h-screen">
+          <p className="text-slate-400">Loading...</p>
+        </div>
+      );
+    }
   // ✅ FIX: pass Firestore collection reference
   const studentsRef = useMemo(() => {
   const ref = collection(db, "students");
@@ -119,7 +138,10 @@ export default function StudentsPage() {
                         <div className="relative">
                           <div className="absolute inset-0 bg-gradient-to-br from-cyan-400 to-blue-500 rounded-full blur opacity-40 group-hover:opacity-100 transition-opacity duration-500" />
                           <Avatar className="relative border-2 border-cyan-400/30 group-hover:border-cyan-400/60 transition-colors duration-500">
-                            <AvatarImage src={student.photoURL} />
+                            <AvatarImage 
+                              src={user?.photoURL  || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(student.email || student.name || "user")}`}
+                              alt={student.name}
+                            />
                             <AvatarFallback className="bg-gradient-to-br from-cyan-500 to-blue-500 text-white font-bold">
                               {student.name?.charAt(0)?.toUpperCase() || "?"}
                             </AvatarFallback>

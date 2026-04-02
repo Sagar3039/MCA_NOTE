@@ -27,6 +27,7 @@ import { toast } from '@/hooks/use-toast';
 import { verifyApiKey } from '@/ai/flows/summarize-notice-flow';
 import { getAuth, updateProfile } from 'firebase/auth';
 import { getFirestore, doc, setDoc, getDoc } from 'firebase/firestore';
+import { BRANCHES } from '@/lib/branches';
 
 interface StudentProfile {
   id?: string;
@@ -259,15 +260,18 @@ export function SettingsDialog() {
                     onValueChange={(value) => setEditedProfile({...editedProfile, branch: value})}
                   >
                     <SelectTrigger id="branch">
-                      <SelectValue />
+                      <SelectValue placeholder="Select a branch" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="CSE">CSE</SelectItem>
-                      <SelectItem value="ECE">ECE</SelectItem>
-                      <SelectItem value="ME">ME</SelectItem>
-                      <SelectItem value="CE">CE</SelectItem>
-                      <SelectItem value="EE">EE</SelectItem>
-                      <SelectItem value="IT">IT</SelectItem>
+                      {Object.entries(BRANCHES).map(([key, category]) => (
+                        <div key={key}>
+                          {category.options.map((option) => (
+                            <SelectItem key={option} value={option}>
+                              {option}
+                            </SelectItem>
+                          ))}
+                        </div>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
